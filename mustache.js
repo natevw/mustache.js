@@ -22,10 +22,10 @@ var Mustache = function() {
     // state created per-instance to avoid sharing
     pragmas: null,
     
-    // the main parser (return value for internal use only)
-    render: function(template, context, partials) {
+    // the main parser (return value, _pragmas for internal use only)
+    render: function(template, context, partials, _pragmas) {
       //console.log("Context", context);
-      this.pragmas = {};
+      this.pragmas = _pragmas || {};
       var tokens = this.splitTemplate(template);
       //console.log("Tokens", tokens);
       var tree = this.formTree(tokens);
@@ -166,9 +166,9 @@ var Mustache = function() {
           // this is @janl's way
           var subContext = context[item.tag];
           if (typeof(subContext) == "object") {
-            this.render(subTemplate, subContext, partials);
+            this.render(subTemplate, subContext, partials, this.pragmas);
           } else {
-            this.render(subTemplate, context, partials);
+            this.render(subTemplate, context, partials, this.pragmas);
           }
         } else if (item.operator && !item.noEscape) {
           // ignore other operators
