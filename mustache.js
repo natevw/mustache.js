@@ -160,7 +160,7 @@ var Mustache = function() {
             throw new Error("Unknown partial '" + item.tag + "'");
           }
           
-		  // this is the mustache(5) way
+		  // by my understanding, this is the mustache(5) way
 		  // this.render(subTemplate, context, partials);
 		  
           // this is @janl's way
@@ -168,7 +168,7 @@ var Mustache = function() {
           if (typeof(subContext) == "object") {
             this.render(subTemplate, subContext, partials);
           } else {
-            this.send(subTemplate);
+            this.render(subTemplate, context, partials);
           }
         } else if (item.operator && !item.noEscape) {
           // ignore other operators
