@@ -251,12 +251,13 @@ var Mustache = function() {
     
     // converts special HTML characters
     escapeHTML: function(s) {
-      var htmlCharsRE = new RegExp("&(?!\\w+;)|[\"<>\\\\]", "g");
+      var htmlCharsRE = new RegExp("&(?!\\w+;)|[\"'<>\\\\]", "g");
       return s.replace(htmlCharsRE, function(c) {
         switch(c) {
           case "&": return "&amp;";
           case "\\": return "\\\\";
           case '"': return '\"';
+          case "'": return '&#39;';
           case "<": return "&lt;";
           case ">": return "&gt;";
           default: return c;
