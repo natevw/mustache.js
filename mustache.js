@@ -20,6 +20,9 @@ var Mustache = function() {
     },
     
     // state created per-instance to avoid sharing
+    /* NOTE: This lets partials inherit pragmas, but it also lets them modify them
+             in the middle of a render. Partials pragma inheritance is interesting.
+             See https://github.com/janl/mustache.js/issues/issue/74 */
     pragmas: null,
     
     // the main parser (return value, _pragmas for internal use only)
