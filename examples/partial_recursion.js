@@ -4,7 +4,7 @@ var partial_context = {
     {
       name: '1.1',
       children: [
-        {name: '1.1.1'}
+        {name: '1.1.1', children: null /* prevent infinite recursion*/ }
       ]
     }
   ]
