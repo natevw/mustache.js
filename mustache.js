@@ -11,7 +11,7 @@ var Mustache = function() {
   var Renderer = function(sender) {
     this.send = sender;
   };
-
+  
   Renderer.prototype = {
     otag: "{{",
     ctag: "}}",
@@ -141,7 +141,7 @@ var Mustache = function() {
               this.renderTree(item.tree, context, partials, template);
             }
           } else while (value = iterator()) {
-            if (value instanceof Function) {
+            if (this.isInstance(value, Function)) {
               var subtree = item.tree;
               var lastSubitem = subtree[subtree.length-1];
               var subtext = template.slice(item.end, lastSubitem && lastSubitem.end);
@@ -191,7 +191,7 @@ var Mustache = function() {
     lookupValue: function(name, context) {
       var value = context[name];
       // evaluate plain-function value (only once)
-      if (value instanceof Function && !value.iterator) {
+      if (this.isInstance(value, Function) && !value.iterator) {
         value = value.apply(context);
       }
       // silently ignore unkown variables
@@ -202,7 +202,7 @@ var Mustache = function() {
     },
     
     objectValue: function(value, context) {
-      if (value instanceof Function) {
+      if (this.isInstance(value, Function)) {
         return value;
       }
       
@@ -223,9 +223,9 @@ var Mustache = function() {
       var me = this;
       if (!value) {
         return function(){};
-      } else if (value instanceof Function && value.iterator) {
+      } else if (this.isInstance(value, Function) && value.iterator) {
         return value;
-      } else if (value instanceof Array) {
+      } else if (this.isInstance(value, Array)) {
         var i = 0;
         var l = value.length;
         return function() {
@@ -238,6 +238,19 @@ var Mustache = function() {
           return me.objectValue(v, context);
         };
       }
+    },
+    
+    // reliably check object type Function/Array, even when object was constructed in a different global context
+    isInstance: function (obj, type) {
+        if (obj instanceof type) {
+            // doesn't hurt to check this first
+            return true;
+        } else if (type === Function && typeof(obj) === "function") {
+            return true;
+        } else if (type === Array && Object.prototype.toString.call(obj) === "[object Array]") {
+            return true;
+        } // no other types need support in current codebase
+        return false;
     },
     
     // copies contents of `b` over copy of `a`
