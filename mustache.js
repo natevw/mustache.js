@@ -19,21 +19,15 @@ var Mustache = function() {
       "IMPLICIT-ITERATOR": true
     },
     
-    // state created per-instance to avoid sharing
-    /* NOTE: This lets partials inherit pragmas, but it also lets them modify them
-             in the middle of a render. Partials pragma inheritance is interesting.
-             See https://github.com/janl/mustache.js/issues/issue/74 */
-    pragmas: null,
-    
-    // the main parser (return value, _pragmas for internal use only)
-    render: function(template, context, partials, _pragmas) {
+    // the main entry into parsing
+    render: function(template, context, partials) {
       //console.log("Context", context);
-      this.pragmas = _pragmas || {};
-      var tokens = this.splitTemplate(template);
+      var pragmas = {'IMPLICIT-ITERATOR':{}};
+      var tokens = this.splitTemplate(template, pragmas);
       //console.log("Tokens", tokens);
-      var tree = this.formTree(tokens);
+      var tree = this.formTree(tokens, pragmas);
       //console.log("Tree", tree);
-      this.renderTree(tree, context, partials, template);
+      this.renderTree(tree, context, partials, template, pragmas);
     },
     
     // returns {tag, start, end} or nothing
@@ -62,7 +56,7 @@ var Mustache = function() {
       return token;
     },
     
-    splitTemplate: function(template) {
+    splitTemplate: function(template, pragmas) {
       var tokens = [];
       var token;
       var parsePosition = 0;
@@ -82,8 +76,7 @@ var Mustache = function() {
           var pragmaInfo = token.tag.match(/([\w_-]+) ?([\w]+=[\w]+)?/);
           var pragma = pragmaInfo[1];
           if (!this.pragmas_implemented[pragma]) {
-            throw new Error("This implementation of mustache doesn't understand the '" +
-                            pragma + "' pragma");
+            throw new Error("This implementation of mustache doesn't understand the '" + pragma + "' pragma");
           }
           var options = {}
           var optionStr = pragmaInfo[2];
@@ -91,7 +84,7 @@ var Mustache = function() {
             var opts = optionStr.split("=");
             options[opts[0]] = opts[1];
           }
-          this.pragmas[pragma] = options;
+          pragmas[pragma] = options;
         }
       }
       var finalText = template.slice(parsePosition, template.length);
@@ -100,7 +93,7 @@ var Mustache = function() {
     },
     
     // NOTE: empties tokens parameter and modifies its former subobjects
-    formTree: function(tokens, section) {
+    formTree: function(tokens, section, pragmas) {
       var tree = [];
       var token;
       while (token = tokens.shift()) {
@@ -129,16 +122,16 @@ var Mustache = function() {
       return tree;
     },
     
-    renderTree: function(tree, context, partials, template) {
+    renderTree: function(tree, context, partials, template, pragmas) {
       for (var i = 0, len = tree.length; i < len; ++i) {
         var item = tree[i];
         if (item.section) {
-          var iterator = this.valueIterator(item.tag, context);
+          var iterator = this.valueIterator(item.tag, context, pragmas);
           var value;
           if (item.invert) {
             value = iterator();
             if (!value) {
-              this.renderTree(item.tree, context, partials, template);
+              this.renderTree(item.tree, context, partials, template, pragmas);
             }
           } else while (value = iterator()) {
             if (this.isInstance(value, Function)) {
@@ -154,7 +147,7 @@ var Mustache = function() {
               }
             } else {
               var subContext = this.mergedCopy(context, value);
-              this.renderTree(item.tree, subContext, partials, template);
+              this.renderTree(item.tree, subContext, partials, template, pragmas);
             }
           }
         } else if (item.partial) {
@@ -169,9 +162,9 @@ var Mustache = function() {
           // this is @janl's way
           var subContext = context[item.tag];
           if (typeof(subContext) == "object") {
-            this.render(subTemplate, subContext, partials, this.pragmas);
+            this.render(subTemplate, subContext, partials);
           } else {
-            this.render(subTemplate, context, partials, this.pragmas);
+            this.render(subTemplate, context, partials);
           }
         } else if (item.operator && !item.noEscape) {
           // ignore other operators
@@ -201,24 +194,28 @@ var Mustache = function() {
       return value;
     },
     
-    objectValue: function(value, context) {
+    objectValue: function(value, context, pragmas) {
+      if (value == null) {
+          return null;
+      }
       if (this.isInstance(value, Function)) {
         return value;
       }
       
-      var obj = (value != null) ? {} : null;
+      var obj;
       if (Object.prototype.toString.call(value) == '[object Object]') {
         obj = value;
-      } else if(this.pragmas["IMPLICIT-ITERATOR"]) {
+      } else if(pragmas["IMPLICIT-ITERATOR"]) {
         // original credit to @langalex, support for arrays of strings
-        var iteratorKey = this.pragmas["IMPLICIT-ITERATOR"].iterator || ".";
+        var iteratorKey = pragmas["IMPLICIT-ITERATOR"].iterator || ".";
+        obj = {};
         obj[iteratorKey] = value;
       }
       return obj;
     },
     
     // always returns iterator function returning object/null
-    valueIterator: function(name, context) {
+    valueIterator: function(name, context, pragmas) {
       var value = this.lookupValue(name, context);
       var me = this;
       if (!value) {
@@ -229,13 +226,13 @@ var Mustache = function() {
         var i = 0;
         var l = value.length;
         return function() {
-          return (i < l) ? me.objectValue(value[i++], context) : null;
+          return (i < l) ? me.objectValue(value[i++], context, pragmas) : null;
         }
       } else {
         return function() {
           var v = value;
           value = null;
-          return me.objectValue(v, context);
+          return me.objectValue(v, context, pragmas);
         };
       }
     },
