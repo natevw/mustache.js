@@ -269,7 +269,7 @@ var Mustache = function() {
         switch(c) {
           case "&": return "&amp;";
           case "\\": return "\\\\";
-          case '"': return '\"';
+          case '"': return "&quot;";
           case "'": return '&#39;';
           case "<": return "&lt;";
           case ">": return "&gt;";
