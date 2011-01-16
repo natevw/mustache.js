@@ -268,7 +268,7 @@ var Mustache = function() {
       return s.replace(htmlCharsRE, function(c) {
         switch(c) {
           case "&": return "&amp;";
-          case "\\": return "\\\\";
+          case "\\": return "&#92;";
           case '"': return "&quot;";
           case "'": return '&#39;';
           case "<": return "&lt;";
