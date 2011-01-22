@@ -263,19 +263,11 @@ var Mustache = function() {
     },
     
     // converts special HTML characters
+    _escape_re: /[&\"'<>\\]/g,  // "
+    _escape_map: {"&": "&amp;", "\\": "&#92;", "\"": "&quot;", "'": "&#39;", "<": "&lt;", ">": "&gt;"},
     escapeHTML: function(s) {
-      var htmlCharsRE = new RegExp("&(?!\\w+;)|[\"'<>\\\\]", "g");
-      return s.replace(htmlCharsRE, function(c) {
-        switch(c) {
-          case "&": return "&amp;";
-          case "\\": return "&#92;";
-          case '"': return "&quot;";
-          case "'": return '&#39;';
-          case "<": return "&lt;";
-          case ">": return "&gt;";
-          default: return c;
-        }
-      });
+      var map = this._escape_map;
+      return s.replace(this._escape_re, function(c) { return map[c]; });
     }
   };
 
